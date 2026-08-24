@@ -1,0 +1,22 @@
+# 每台机器自己的身份 —— 私钥进了仓库就等于所有节点共用一个身份
+flop_ed25519
+flop_ed25519.pub
+
+# 每台机器自己的状态
+registration.json
+identity.json
+node.env
+*.log
+
+# 本地配置：服务器地址、密钥路径、凭证
+deploy/nodes.txt
+.env
+*.pem
+key/
+backup/
+
+# 本地工作笔记，不公开
+claude.md
+CLAUDE.md
+
+__pycache__/

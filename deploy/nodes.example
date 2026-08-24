@@ -1,0 +1,9 @@
+# 每行一台机器：  <ssh目标> [节点名] [ssh私钥]
+#
+# 节点名省略时用该机器的 hostname；只想指定密钥、不想改节点名时，
+# 第二列填 - 占位。密钥第三列 > --key/$FLOP_SSH_KEY > ssh 自己的默认。
+# 身份由每台机器自己生成的 flop_ed25519 决定，和登录用的 ssh 密钥无关。
+#
+# ubuntu@10.0.0.11     web-01    ~/.ssh/server_key
+# ubuntu@10.0.0.12     web-02
+# root@example.com     -         ~/.ssh/backup_key
