@@ -11,9 +11,21 @@ node.env
 # 本地配置：服务器地址、密钥路径、凭证
 deploy/nodes.txt
 .env
-*.pem
 key/
+keys/
 backup/
+
+# 任何密钥材料。宁可误伤也不要漏 —— 曾经因为写了 key/ 而放过 keys/，
+# 把 acme.sh 的 TLS 私钥和 DNSPod 凭证推上了公开仓库。
+*.pem
+*.key
+*.csr
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+.acme.sh/
+account.conf
 
 # 本地工作笔记，不公开
 claude.md

@@ -21,9 +21,12 @@
 
 ## 前提
 
-目标机器：Ubuntu，有 `python3`（20.04+ 自带即可）、`ssh-keygen`、systemd。
+目标机器：Ubuntu / CentOS / 其它 Linux，有 `python3`（3.6+）、`ssh-keygen`、systemd。
 **不需要** pip、虚拟环境或任何第三方包——签名在没有 `cryptography` 时会回退到
 纯 Python 实现，`test_sign.py` 用 RFC 8032 官方向量和固化向量验证过它。
+
+需要一份系统 CA 证书（发行版自带的 `ca-certificates` 即可），否则 https 请求
+无法验证证书。自己编译的 Python 尤其容易缺——见故障排查表。
 
 本机：`rsync`、能免密 ssh 到目标机器。
 
@@ -258,6 +261,7 @@ note 会在 7 天无写入后被服务器自己删掉。想保留身份就**别�
 | bootstrap 报 `note 被别的 DID 占用` | 这把密钥的 fingerprint 已被别的 DID 注册。基本只会发生在密钥被复制到多台机器时——每台该有自己的密钥。 |
 | 登出后 timer 不跑 | 用户级 timer 没开 linger：`sudo loginctl enable-linger $USER` |
 | `签名 check-in 被拒 (HTTP 400)` | nonce 没有递增。脚本用毫秒时钟，正常不会撞；同一毫秒内跑两次会。隔一秒重试。 |
+| `CERTIFICATE_VERIFY_FAILED: unable to get local issuer certificate` | 这个 Python 一个 CA 都没加载到，自己编译的 Python（`/usr/local/pythonXX`）在 CentOS 上很常见。`flopnote.py` 会自动去 `/etc/pki/tls/certs/ca-bundle.crt` 等常见位置找；系统本身没装证书才会失败：`yum install -y ca-certificates && update-ca-trust`。装了仍不行就显式指定：`SSL_CERT_FILE=/etc/pki/tls/certs/ca-bundle.crt python3 02_register.py --go`。 |
 | `400 note limit reached` | 约定 namespace `/kv/did/` 满了（上限 5120），且这个节点还没建成 note。脚本会自动落到备用 namespace；空位随时在释放，直接重跑 `python3 03_refresh.py` 往往就成功了。已有 note 的节点不会碰到这个错。 |
 | `HTTP 429` | 触发限流。响应体里写了要等几秒。多机同时 bootstrap 且共用出口 IP 时容易碰到，隔开几分钟。 |
 | lobby 里显示成 `<~名字>` | 走的是未签名通道，签名没生效。跑 `python3 test_sign.py` 查签名链路。 |

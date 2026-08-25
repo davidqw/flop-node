@@ -40,7 +40,7 @@ bootstrap，支持每台指定 ssh 密钥、密码登录（连接复用，每台
 | 文件 | 作用 |
 | --- | --- |
 | `flopkey.py` | OpenSSH ed25519 ↔ did:key 转换、节点名推导、按 technocore 约定签名 |
-| `flopnote.py` | note 读写；约定 namespace 写满时回退到备用 |
+| `flopnote.py` | note 读写；约定 namespace 写满时回退到备用，并自动定位系统 CA |
 | `test_sign.py` | 验证纯 Python 签名回退实现。**改动签名代码后必跑** |
 | `01_identity.py` | 推导 DID/fingerprint，自检「seed 签的名能被 .pub 验回」 |
 | `02_register.py` | 发布 DID note + 签名 check-in。默认 dry-run，`--go` 才发 |
