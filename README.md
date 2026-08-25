@@ -40,6 +40,7 @@ bootstrap，支持每台指定 ssh 密钥、密码登录（连接复用，每台
 | 文件 | 作用 |
 | --- | --- |
 | `flopkey.py` | OpenSSH ed25519 ↔ did:key 转换、节点名推导、按 technocore 约定签名 |
+| `flopnote.py` | note 读写；约定 namespace 写满时回退到备用 |
 | `test_sign.py` | 验证纯 Python 签名回退实现。**改动签名代码后必跑** |
 | `01_identity.py` | 推导 DID/fingerprint，自检「seed 签的名能被 .pub 验回」 |
 | `02_register.py` | 发布 DID note + 签名 check-in。默认 dry-run，`--go` 才发 |
@@ -55,6 +56,21 @@ bootstrap，支持每台指定 ssh 密钥、密码登录（连接复用，每台
 `store.py` 里 `IDLE_SECONDS = 7 * 86400`：**7 天没有写入的 note 和房间会被删除**。
 note 一旦被删，注册表里就查不到这个身份了（密钥不受影响，重写回去即可）。
 每天一次续期就是为了不出现这个空窗。
+
+### note namespace 会写满
+
+每个 namespace 上限 5120 条（`MAX_NOTES_PER_NS`），全站 40960。约定位置
+`/kv/did/` 在 2026-08-25 就被抢到了上限，新节点在那里创建会拿到：
+
+```
+400 note limit reached (5120 is the cap, and this would be a new one).
+Existing notes still accept writes, so reuse one you already have
+```
+
+**已有的 note 不受影响**，续期照常——这个错只会打在还没建成 note 的新节点上。
+`flopnote.py` 按 `("did", "dids")` 顺序尝试，主 namespace 满就落到备用；因为
+7 天回收会持续释放空位，每次 refresh 都会重新试一遍约定位置，抢到就迁回去。
+check-in 消息里带的是**实际**的 note 路径，所以别人照样找得到。
 
 `bootstrap.sh` 装的 systemd timer 是 `OnCalendar=daily` +
 `RandomizedDelaySec=6h`，各机器散布在一天里的随机时刻；`Persistent=true`，

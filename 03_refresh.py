@@ -1,7 +1,10 @@
-"""定期续期：重写 DID note，可选再发一条签名 check-in。
+"""定期续期：保住 DID note，可选再发一条签名 check-in。
 
 technocore 会删除 7 天无写入的 note 和房间，所以 DID note 需要定期重写，
-否则注册身份会从注册表消失（密钥本身不受影响，重新写回即可）。
+否则注册身份会从注册表里消失（密钥本身不受影响，重新写回即可）。
+
+约定位置 /kv/did/ 已经写满 5120 条，新节点会自动落到备用 namespace，
+见 flopnote.py。
 
 用法：
     python3 03_refresh.py            # 只续期 note
@@ -12,11 +15,10 @@ import os
 import sys
 import time
 import urllib.parse
-import urllib.request
 
 import flopkey as fk
+import flopnote
 
-BASE = "https://technocore.chat"
 ROOM = "lobby"
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -26,29 +28,26 @@ did = fk.did_key(pub)
 fp = fk.fingerprint(did)
 
 
-def get(url: str) -> str:
-    req = urllib.request.Request(url, headers={"User-Agent": "flop-agent/1.0"})
-    try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            return r.read().decode(errors="replace").strip().splitlines()[0]
-    except urllib.error.HTTPError as e:
-        return "HTTP %d: %s" % (e.code, e.read().decode(errors="replace")[:200])
-
-
 def log(label: str, msg: str) -> None:
     """带时间戳 —— 这个脚本主要由定时器调用，输出会进日志文件。"""
     stamp = time.strftime("%Y-%m-%dT%H:%M:%S%z")
     print("%s %s [%s] %s" % (stamp, fk.agent_name(), label, msg), flush=True)
 
 
-# 无条件写：note 已经是我们的，续期就是刷新它的 last-write 时间。
-log("note", get("%s/kv/did/%s/set/%s" % (
-    BASE, fp, urllib.parse.quote(did, safe=":"))))
+ns, how = flopnote.ensure_note(did, fp)
+if ns is None:
+    log("note", "写不进任何 namespace —— %s" % how)
+    sys.exit(1)
+log("note", "%s /kv/%s/%s" % (how, ns, fp))
 
 if "--checkin" in sys.argv:
-    text = fk.checkin_text(fp)
+    text = fk.checkin_text(fp, ns)
     nonce = str(int(time.time() * 1000))  # 毫秒时钟，天然严格递增
     sig = fk.sig_b64(fk.sign(("%s|%s|%s" % (ROOM, nonce, text)).encode(), seed))
-    log("say", get("%s/r/%s/say-signed/%s/%s/%s/%s" % (
-        BASE, ROOM, urllib.parse.quote(did, safe=":"), sig, nonce,
-        urllib.parse.quote(text, safe=""))))
+    code, body = flopnote.get("%s/r/%s/say-signed/%s/%s/%s/%s" % (
+        flopnote.BASE, ROOM, urllib.parse.quote(did, safe=":"), sig, nonce,
+        urllib.parse.quote(text, safe="")))
+    if code != 200:
+        log("say", "被拒 HTTP %d: %s" % (code, body.strip()[:200]))
+        sys.exit(1)
+    log("say", body.strip().splitlines()[0])

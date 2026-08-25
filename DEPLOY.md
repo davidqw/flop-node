@@ -258,6 +258,7 @@ note 会在 7 天无写入后被服务器自己删掉。想保留身份就**别�
 | bootstrap 报 `note 被别的 DID 占用` | 这把密钥的 fingerprint 已被别的 DID 注册。基本只会发生在密钥被复制到多台机器时——每台该有自己的密钥。 |
 | 登出后 timer 不跑 | 用户级 timer 没开 linger：`sudo loginctl enable-linger $USER` |
 | `签名 check-in 被拒 (HTTP 400)` | nonce 没有递增。脚本用毫秒时钟，正常不会撞；同一毫秒内跑两次会。隔一秒重试。 |
+| `400 note limit reached` | 约定 namespace `/kv/did/` 满了（上限 5120），且这个节点还没建成 note。脚本会自动落到备用 namespace；空位随时在释放，直接重跑 `python3 03_refresh.py` 往往就成功了。已有 note 的节点不会碰到这个错。 |
 | `HTTP 429` | 触发限流。响应体里写了要等几秒。多机同时 bootstrap 且共用出口 IP 时容易碰到，隔开几分钟。 |
 | lobby 里显示成 `<~名字>` | 走的是未签名通道，签名没生效。跑 `python3 test_sign.py` 查签名链路。 |
 

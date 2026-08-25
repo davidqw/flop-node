@@ -37,10 +37,13 @@ def b58encode(data: bytes) -> str:
     return "1" * (len(data) - len(data.lstrip(b"\x00"))) + out
 
 
-def checkin_text(fp: str) -> str:
+def checkin_text(fp: str, ns: str = "did") -> str:
     """lobby check-in 的文本。单行纯 ASCII —— 服务器的 single-line sweep
-    不会改动它，所以签名覆盖的字节和最终存储的字节一致。"""
-    text = "FLOP check-in: node %s, did note /kv/did/%s" % (agent_name(), fp)
+    不会改动它，所以签名覆盖的字节和最终存储的字节一致。
+
+    带上 note 的实际 namespace：约定的 /kv/did/ 满了以后节点会落到备用
+    namespace，读到这条消息的人得知道去哪儿找。"""
+    text = "FLOP check-in: node %s, did note /kv/%s/%s" % (agent_name(), ns, fp)
     if not text.isascii():
         raise ValueError("机器名含非 ASCII 字符，请设 FLOP_AGENT_NAME 覆盖")
     return text
