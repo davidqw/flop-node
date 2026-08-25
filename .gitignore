@@ -32,3 +32,6 @@ claude.md
 CLAUDE.md
 
 __pycache__/
+
+# macOS
+.DS_Store
